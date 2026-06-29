@@ -113,34 +113,39 @@ if uploaded_file is not None:
                 
                 frame_count += 1
                 
+                # Convertendo para RGB para processar
+                image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                
                 # --- OTIMIZAÇÃO: Pular frames para evitar lag ---
-                # Processa apenas 1 a cada 5 frames para aliviar o servidor
                 if frame_count % 5 != 0:
-                    stframe.image(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), width=600)
+                    stframe.image(image_rgb, width=600)
                     continue 
 
-                # Processamento Visual (ocorre apenas nos frames selecionados)
-                image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                results = pose.process(image)
+                # Processamento apenas nos frames selecionados
+                results = pose.process(image_rgb)
                 
                 try:
                     landmarks = results.pose_landmarks.landmark
-                    # ... (seu código de landmarks permanece igual)
+                    shoulder = [landmarks[11].x, landmarks[11].y]
+                    hip = [landmarks[23].x, landmarks[23].y]
+                    knee = [landmarks[25].x, landmarks[25].y]
                     
                     hip_angle_raw = calcular_angulo(shoulder, hip, knee)
                     flexao_tronco = abs(180 - hip_angle_raw)
                     torque, shear = calcular_fisica_stiff(flexao_tronco, peso, carga, altura)
                     
-                    # Salvar dados apenas quando processar
                     dados.append([frame_count, flexao_tronco, torque, shear])
                     
-                    # Desenhar apenas no frame processado
-                    mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+                    # Desenhar no frame RGB
+                    mp_drawing.draw_landmarks(image_rgb, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
                     
-                except Exception as e:
+                    # Adicionar texto no frame
+                    cv2.putText(image_rgb, f"Flexao: {int(flexao_tronco)}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
+                    
+                except Exception:
                     pass
                 
-                stframe.image(image, width=600)
+                stframe.image(image_rgb, width=600)
         cap.release()
 
     # --- RELATÓRIO FINAL ---
