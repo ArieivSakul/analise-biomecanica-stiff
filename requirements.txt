@@ -1,3 +1,4 @@
+#tecnologias utilizadas
 streamlit
 mediapipe
 opencv-python-headless
