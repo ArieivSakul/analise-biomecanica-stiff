@@ -8,12 +8,68 @@ import tempfile
 def aplicar_estilo_customizado():
     estilo_css = """
     <style>
+        /* 1. Limpeza global e cor de fundo */
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
         header {visibility: hidden;}
-        .stApp {background-color: #f8f9fa;}
-        .stButton>button {border-radius: 8px; transition: 0.3s;}
-        .stButton>button:hover {border: 1px solid #0056b3; color: #0056b3;}
+
+        /* 2. Forçar Tema Light (Fundo claro, texto escuro) */
+        .stApp {
+            background-color: #fdfdfd; /* Fundo cinza quase branco */
+            color: #111111; /* Texto global preto suave */
+        }
+
+        /* 3. Garantir contraste nos Títulos (estavam invisíveis) */
+        h1, h2, h3, h4, h5, h6 {
+            color: #111111 !important;
+        }
+
+        /* 4. Corrigir Labels de Texto (acima dos inputs, estavam invisíveis) */
+        .st-bc, .st-bh, label {
+            color: #111111 !important;
+        }
+
+        /* 5. Estilizar os Inputs de Número (estavam pretos com texto invisível) */
+        /* Vamos reverter para fundo branco com texto preto */
+        .stNumberInput input {
+            background-color: #ffffff !important;
+            color: #111111 !important;
+            border: 1px solid #ced4da !important;
+            border-radius: 6px !important;
+        }
+        
+        /* Estilizar os controles de (+/-) dos inputs de número */
+        .stNumberInput button {
+            color: #111111 !important;
+            background-color: transparent !important;
+            border: none !important;
+        }
+
+        /* 6. Estilizar o Botão de Upload (estava escuro) */
+        /* Vamos reverter para um estilo de botão padrão de modo claro */
+        .stFileUploader button {
+            background-color: #ffffff !important;
+            color: #111111 !important;
+            border: 1px solid #ced4da !important;
+            border-radius: 6px !important;
+            transition: 0.2s;
+        }
+        .stFileUploader button:hover {
+            border: 1px solid #0056b3 !important;
+            color: #0056b3 !important;
+            background-color: #f0f7ff !important;
+        }
+
+        /* 7. Arredondar e estilizar botões gerais (opcional do passo anterior, mantendo) */
+        .stButton>button {
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            transition: 0.3s;
+        }
+        .stButton>button:hover {
+            border: 1px solid #0056b3;
+            color: #0056b3;
+        }
     </style>
     """
     st.markdown(estilo_css, unsafe_allow_html=True)
