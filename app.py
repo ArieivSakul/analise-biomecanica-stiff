@@ -5,6 +5,24 @@ import numpy as np
 import pandas as pd
 import tempfile
 
+def aplicar_estilo_customizado():
+    estilo_css = """
+    <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        .stApp {background-color: #f8f9fa;}
+        .stButton>button {border-radius: 8px; transition: 0.3s;}
+        .stButton>button:hover {border: 1px solid #0056b3; color: #0056b3;}
+    </style>
+    """
+    st.markdown(estilo_css, unsafe_allow_html=True)
+
+# 3. Chama a função para aplicar o visual
+aplicar_estilo_customizado()
+
+st.title("Análise Biomecânica - Stiff")
+
 # --- CONFIGURAÇÕES DO STREAMLIT ---
 st.set_page_config(page_title="Biomecânica Stiff", layout="wide")
 
