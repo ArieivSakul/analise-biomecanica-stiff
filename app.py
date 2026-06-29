@@ -5,6 +5,9 @@ import numpy as np
 import pandas as pd
 import tempfile
 
+# 1. Configuração da página
+st.set_page_config(page_title="Simulador de Exercício Stiff", layout="wide")
+
 def aplicar_estilo_customizado():
     estilo_css = """
     <style>
