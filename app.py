@@ -88,24 +88,18 @@ with col_input:
     uploaded_file = st.file_uploader("Envie o vídeo (vista lateral)", type=["mp4", "mov", "avi"])
 
 if uploaded_file is not None:
-    # Salvar arquivo temporário
     tfile = tempfile.NamedTemporaryFile(delete=False) 
     tfile.write(uploaded_file.read())
     
     cap = cv2.VideoCapture(tfile.name)
-    
-    # Configurar MediaPipe
     mp_pose = mp.solutions.pose
     mp_drawing = mp.solutions.drawing_utils
     
-    # Listas para dados
     dados = []
     
-    # --- PASSO 1: DECLARAR AS COLUNAS ---
-    # O [1.5, 1] faz a coluna do vídeo ser levemente mais larga que a dos gráficos
+    # Criamos as colunas ANTES do loop
     col_video, col_graficos = st.columns([1.5, 1], gap="large")
     
-    # --- PASSO 2: COLUNA DO VÍDEO (ESQUERDA) ---
     with col_video:
         st.markdown("### 🎥 Rastreamento Cinemático")
         stframe = st.empty()
@@ -116,87 +110,50 @@ if uploaded_file is not None:
                 ret, frame = cap.read()
                 if not ret:
                     break
-                
                 frame_count += 1
                 
-                # Processamento Visual
                 image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 results = pose.process(image)
                 image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
                 
                 try:
                     landmarks = results.pose_landmarks.landmark
-                    
-                    # Pontos: 11=Ombro, 23=Quadril, 25=Joelho
                     shoulder = [landmarks[11].x, landmarks[11].y]
                     hip = [landmarks[23].x, landmarks[23].y]
                     knee = [landmarks[25].x, landmarks[25].y]
                     
-                    # Calcular Ângulos
                     hip_angle_raw = calcular_angulo(shoulder, hip, knee)
-                    
-                    # Converter para flexão de tronco (0 = em pé)
                     flexao_tronco = abs(180 - hip_angle_raw)
-                    
-                    # Calcular Física
                     torque, shear = calcular_fisica_stiff(flexao_tronco, peso, carga, altura)
                     
-                    # Salvar dados
                     dados.append([frame_count, flexao_tronco, torque, shear])
                     
-                    # Desenhar Informações na Tela
-                    cv2.putText(image, f"Flexao: {int(flexao_tronco)}graus", (10, 50), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
-                    cv2.putText(image, f"Torque: {int(torque)} Nm", (10, 90), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-                    
+                    cv2.putText(image, f"Flexao: {int(flexao_tronco)}graus", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
+                    cv2.putText(image, f"Torque: {int(torque)} Nm", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                     mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
-                    
-                except Exception as e:
+                except:
                     pass
                 
-                # Mostrar vídeo atualizado com tamanho fixo que ajustamos antes
+                # AQUI É O SEGREDO: apenas o vídeo roda dentro do loop
                 stframe.image(cv2.cvtColor(image, cv2.COLOR_BGR2RGB), width=600)
-
         cap.release()
-        
-    # --- PASSO 3: COLUNA DOS GRÁFICOS (DIREITA) ---
-    with col_graficos:
-        st.markdown("### 📊 Análise Dinâmica")
-        
-        # Transformar a lista de dados em um DataFrame Pandas para os gráficos
-        if len(dados) > 0:
-            df = pd.DataFrame(dados, columns=["Frame", "Flexao", "Torque", "Cisalhamento"])
-            df.set_index("Frame", inplace=True)
-            
-            # Gráfico de Torque (Vermelho)
-            st.write("**Evolução do Torque (L5/S1)**")
-            st.line_chart(df["Torque"], color="#FF4B4B")
-            
-            # Gráfico de Cisalhamento (Azul)
-            st.write("**Força de Cisalhamento**")
-            st.line_chart(df["Cisalhamento"], color="#0068C9")
-        else:
-            st.warning("Nenhum dado capturado. O corpo estava visível na câmera?")
 
-    # --- EXIBIÇÃO DOS RESULTADOS FINAIS ---
-    st.success("Análise Biomecânica Finalizada com Sucesso!")
-    
-    df = pd.DataFrame(dados, columns=["Frame", "Angulo_Flexao", "Torque_Lombar", "Shear_Force"])
-    
-    # Gráficos
-    st.divider()
-    st.header("3. Relatório Biomecânico")
-    
-    g1, g2 = st.columns(2)
-    with g1:
-        st.subheader("Torque na Lombar (Nm)")
-        st.line_chart(df.set_index("Frame")["Torque_Lombar"])
+    # --- RELATÓRIO FINAL (FORA DO LOOP) ---
+    # Só roda uma vez, quando o vídeo termina
+    if len(dados) > 0:
+        df = pd.DataFrame(dados, columns=["Frame", "Flexao", "Torque", "Cisalhamento"])
         
-    with g2:
-        st.subheader("Força de Cisalhamento (N)")
-        st.line_chart(df.set_index("Frame")["Shear_Force"])
+        with col_graficos:
+            st.markdown("### 📊 Análise Dinâmica Final")
+            st.write("**Evolução do Torque (L5/S1)**")
+            st.line_chart(df.set_index("Frame")["Torque"], color="#FF4B4B")
+            st.write("**Força de Cisalhamento**")
+            st.line_chart(df.set_index("Frame")["Cisalhamento"], color="#0068C9")
+            
+        st.success("Análise Biomecânica Finalizada!")
         
-    # Download
-    csv = df.to_csv(index=False).encode('utf-8')
-    st.download_button("📥 Baixar Dados para Excel", data=csv, file_name='biomecanica_stiff.csv', mime='text/csv')
+        # Download
+        csv = df.to_csv(index=False).encode('utf-8')
+        st.download_button("📥 Baixar Relatório (CSV)", data=csv, file_name='biomecanica_stiff.csv', mime='text/csv')
+    else:
+        st.error("Não foi possível detectar o movimento no vídeo.")
