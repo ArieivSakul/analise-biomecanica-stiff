@@ -97,7 +97,7 @@ if uploaded_file is not None:
     
     dados = []
     
-    # Criamos as colunas ANTES do loop
+    # colunas ANTES do loop
     col_video, col_graficos = st.columns([1.5, 1], gap="large")
     
     with col_video:
@@ -134,11 +134,11 @@ if uploaded_file is not None:
                 except:
                     pass
                 
-                # AQUI É O SEGREDO: apenas o vídeo roda dentro do loop
+                #apenas o vídeo roda dentro do loop
                 stframe.image(cv2.cvtColor(image, cv2.COLOR_BGR2RGB), width=600)
         cap.release()
 
-    # --- RELATÓRIO FINAL (FORA DO LOOP) ---
+    # --- RELATÓRIO FINAL ---
     # Só roda uma vez, quando o vídeo termina
     if len(dados) > 0:
         df = pd.DataFrame(dados, columns=["Frame", "Flexao", "Torque", "Cisalhamento"])
