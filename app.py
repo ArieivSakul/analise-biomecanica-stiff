@@ -54,6 +54,10 @@ if uploaded_file is not None:
     mp_drawing = mp.solutions.drawing_utils
     dados = []
     
+    # Opção de Gráfico
+    st.sidebar.markdown("---")
+    tipo_grafico = st.sidebar.radio("Visualização dos Dados:", ["Gráficos Separados", "Gráfico Comparativo (Único)"])
+
     col_vid, col_graf = st.columns([1.5, 1], gap="large")
     with col_vid:
         stframe = st.empty()
@@ -63,20 +67,28 @@ if uploaded_file is not None:
                 ret, frame = cap.read()
                 if not ret: break
                 frame_count += 1
+                
+                # Sempre converte para exibir no Streamlit
                 img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 
+                # Se não for frame de processamento, apenas exibe o vídeo limpo
                 if frame_count % 5 != 0:
                     stframe.image(img_rgb, width=600)
                     continue
                 
+                # Processamento e Desenho (apenas nos frames selecionados)
                 results = pose.process(img_rgb)
-                try:
+                if results.pose_landmarks:
                     lm = results.pose_landmarks.landmark
                     ang = calcular_angulo([lm[11].x, lm[11].y], [lm[23].x, lm[23].y], [lm[25].x, lm[25].y])
                     t, s = calcular_fisica_stiff(abs(180-ang), peso, carga, altura)
                     dados.append([frame_count, abs(180-ang), t, s])
+                    
+                    # Desenho na imagem
                     mp_drawing.draw_landmarks(img_rgb, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
-                except: pass
+                    cv2.putText(img_rgb, f"Flexao: {int(abs(180-ang))} deg", (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
+                    cv2.putText(img_rgb, f"Torque: {int(t)} Nm", (20, 90), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+                
                 stframe.image(img_rgb, width=600)
         cap.release()
 
@@ -84,6 +96,12 @@ if uploaded_file is not None:
         df = pd.DataFrame(dados, columns=["Frame", "Flexao", "Torque", "Cisalhamento"])
         with col_graf:
             st.markdown("### 📊 Análise Dinâmica")
-            st.line_chart(df.set_index("Frame")[["Torque", "Cisalhamento"]])
+            if tipo_grafico == "Gráfico Comparativo (Único)":
+                st.line_chart(df.set_index("Frame")[["Torque", "Cisalhamento"]])
+            else:
+                st.write("**Torque (Nm)**")
+                st.line_chart(df.set_index("Frame")["Torque"], color="#FF4B4B")
+                st.write("**Cisalhamento (N)**")
+                st.line_chart(df.set_index("Frame")["Cisalhamento"], color="#0068C9")
         st.success("Análise Finalizada!")
         st.download_button("📥 Baixar CSV", df.to_csv(index=False).encode('utf-8'), 'biomecanica.csv', 'text/csv')
