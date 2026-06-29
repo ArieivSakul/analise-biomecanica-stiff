@@ -127,7 +127,7 @@ if uploaded_file is not None:
                     pass
                 
                 # Mostrar vídeo atualizado
-                stframe.image(cv2.cvtColor(image, cv2.COLOR_BGR2RGB), use_container_width=True)
+                stframe.image(cv2.cvtColor(image, cv2.COLOR_BGR2RGB), uwidth=600)
 
         cap.release()
         
