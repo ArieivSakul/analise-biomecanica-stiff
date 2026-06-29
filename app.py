@@ -101,9 +101,13 @@ if uploaded_file is not None:
     # Listas para dados
     dados = []
     
-    # Placeholder para o vídeo
+    # --- PASSO 1: DECLARAR AS COLUNAS ---
+    # O [1.5, 1] faz a coluna do vídeo ser levemente mais larga que a dos gráficos
+    col_video, col_graficos = st.columns([1.5, 1], gap="large")
+    
+    # --- PASSO 2: COLUNA DO VÍDEO (ESQUERDA) ---
     with col_video:
-        st.text("Processando vídeo frame a frame...")
+        st.markdown("### 🎥 Rastreamento Cinemático")
         stframe = st.empty()
         
         with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
@@ -151,13 +155,32 @@ if uploaded_file is not None:
                 except Exception as e:
                     pass
                 
-                # Mostrar vídeo atualizado
-                stframe.image(cv2.cvtColor(image, cv2.COLOR_BGR2RGB), uwidth=600)
+                # Mostrar vídeo atualizado com tamanho fixo que ajustamos antes
+                stframe.image(cv2.cvtColor(image, cv2.COLOR_BGR2RGB), width=600)
 
         cap.release()
         
-    # --- EXIBIÇÃO DOS RESULTADOS ---
-    st.success("Análise Finalizada!")
+    # --- PASSO 3: COLUNA DOS GRÁFICOS (DIREITA) ---
+    with col_graficos:
+        st.markdown("### 📊 Análise Dinâmica")
+        
+        # Transformar a lista de dados em um DataFrame Pandas para os gráficos
+        if len(dados) > 0:
+            df = pd.DataFrame(dados, columns=["Frame", "Flexao", "Torque", "Cisalhamento"])
+            df.set_index("Frame", inplace=True)
+            
+            # Gráfico de Torque (Vermelho)
+            st.write("**Evolução do Torque (L5/S1)**")
+            st.line_chart(df["Torque"], color="#FF4B4B")
+            
+            # Gráfico de Cisalhamento (Azul)
+            st.write("**Força de Cisalhamento**")
+            st.line_chart(df["Cisalhamento"], color="#0068C9")
+        else:
+            st.warning("Nenhum dado capturado. O corpo estava visível na câmera?")
+
+    # --- EXIBIÇÃO DOS RESULTADOS FINAIS ---
+    st.success("Análise Biomecânica Finalizada com Sucesso!")
     
     df = pd.DataFrame(dados, columns=["Frame", "Angulo_Flexao", "Torque_Lombar", "Shear_Force"])
     
