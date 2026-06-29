@@ -104,38 +104,43 @@ if uploaded_file is not None:
         st.markdown("### 🎥 Rastreamento Cinemático")
         stframe = st.empty()
         
-        with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
+       with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
             frame_count = 0
             while cap.isOpened():
                 ret, frame = cap.read()
                 if not ret:
                     break
+                
                 frame_count += 1
                 
+                # --- OTIMIZAÇÃO: Pular frames para evitar lag ---
+                # Processa apenas 1 a cada 5 frames para aliviar o servidor
+                if frame_count % 5 != 0:
+                    stframe.image(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), width=600)
+                    continue 
+
+                # Processamento Visual (ocorre apenas nos frames selecionados)
                 image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 results = pose.process(image)
-                image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
                 
                 try:
                     landmarks = results.pose_landmarks.landmark
-                    shoulder = [landmarks[11].x, landmarks[11].y]
-                    hip = [landmarks[23].x, landmarks[23].y]
-                    knee = [landmarks[25].x, landmarks[25].y]
+                    # ... (seu código de landmarks permanece igual)
                     
                     hip_angle_raw = calcular_angulo(shoulder, hip, knee)
                     flexao_tronco = abs(180 - hip_angle_raw)
                     torque, shear = calcular_fisica_stiff(flexao_tronco, peso, carga, altura)
                     
+                    # Salvar dados apenas quando processar
                     dados.append([frame_count, flexao_tronco, torque, shear])
                     
-                    cv2.putText(image, f"Flexao: {int(flexao_tronco)}graus", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
-                    cv2.putText(image, f"Torque: {int(torque)} Nm", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    # Desenhar apenas no frame processado
                     mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
-                except:
+                    
+                except Exception as e:
                     pass
                 
-                #apenas o vídeo roda dentro do loop
-                stframe.image(cv2.cvtColor(image, cv2.COLOR_BGR2RGB), width=600)
+                stframe.image(image, width=600)
         cap.release()
 
     # --- RELATÓRIO FINAL ---
